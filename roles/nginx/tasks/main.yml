@@ -1,0 +1,33 @@
+---
+- name: Ensure apt cache updated (Debian)
+  ansible.builtin.apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install nginx package (Debian/RedHat)
+  ansible.builtin.package:
+    name: "{{ nginx_package }}"
+    state: present
+
+- name: Ensure app root exists
+  ansible.builtin.file:
+    path: "{{ nginx_root }}"
+    state: directory
+    owner: "{{ app_user | default('www-data') }}"
+    group: "{{ app_user | default('www-data') }}"
+    mode: "0755"
+
+- name: Deploy nginx config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart nginx
+
+- name: Ensure nginx service enabled and started
+  ansible.builtin.service:
+    name: "{{ nginx_service_name }}"
+    state: started
+    enabled: yes

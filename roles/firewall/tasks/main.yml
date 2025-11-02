@@ -1,0 +1,59 @@
+---
+- name: Detect firewall tool
+  set_fact:
+    has_ufw: "{{ (ansible_facts.packages.ufw is defined) | default(false) }}"
+    has_firewalld: "{{ (ansible_facts.packages.firewalld is defined) | default(false) }}"
+
+- name: Install ufw (Debian) if preferred
+  ansible.builtin.package:
+    name: ufw
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Ensure firewalld present (RHEL)
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Configure UFW rules (if present)
+  block:
+    - name: allow HTTP
+      ansible.builtin.ufw:
+        rule: allow
+        port: 80
+        proto: tcp
+    - name: allow SSH (limit)
+      ansible.builtin.ufw:
+        rule: allow
+        port: 22
+        proto: tcp
+  when: "'ufw' in ansible_facts.packages"
+
+- name: Configure firewalld rules (if present)
+  block:
+    - name: Ensure firewalld running
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Add HTTP service to public zone
+      ansible.builtin.command: >
+        firewall-cmd --permanent --zone=public --add-service=http
+      register: fw_add_http
+    - name: Reload firewalld if changed
+      ansible.builtin.command: firewall-cmd --reload
+      when: fw_add_http.rc == 0
+  when: "'firewalld' in ansible_facts.packages"
+
+- name: Fallback iptables rule (if no high-level firewall)
+  ansible.builtin.command: >
+    iptables -C INPUT -p tcp --dport 80 -j ACCEPT
+  register: ipt_check
+  ignore_errors: yes
+
+- name: Add iptables rule to allow HTTP if missing
+  ansible.builtin.command: >
+    iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+  when: ipt_check.rc != 0

@@ -1,0 +1,10 @@
+---
+- name: Configure firewall across fleet
+  hosts: all
+  serial: 25
+  max_fail_percentage: 15
+  gather_facts: true
+  tags: firewall
+
+  roles:
+    - role: firewall

@@ -1,0 +1,10 @@
+---
+- name: Deploy nginx to webservers
+  hosts: webservers
+  serial: 5
+  max_fail_percentage: 10
+  gather_facts: true
+  tags: web
+
+  roles:
+    - role: nginx

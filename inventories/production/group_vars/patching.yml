@@ -1,0 +1,3 @@
+---
+patch_reboot_if_required: true
+patch_notify_email: ops-team@example.local

@@ -1,0 +1,5 @@
+---
+nginx_package: nginx
+nginx_service_name: nginx
+nginx_listen_port: 80
+nginx_root: "{{ app_root | default('/var/www/html') }}"

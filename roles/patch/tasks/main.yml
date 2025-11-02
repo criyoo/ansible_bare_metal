@@ -1,0 +1,44 @@
+---
+- name: Identify package manager
+  set_fact:
+    pkg_mgr: "{{ 'apt' if ansible_pkg_mgr == 'apt' else ( 'dnf' if ansible_pkg_mgr in ['dnf','yum'] else ansible_pkg_mgr) }}"
+
+- name: Update apt cache (apt)
+  ansible.builtin.apt:
+    update_cache: yes
+  when: pkg_mgr == 'apt'
+
+- name: Upgrade packages (Debian - apt)
+  ansible.builtin.apt:
+    upgrade: dist
+  when: pkg_mgr == 'apt'
+  register: apt_upgrade
+
+- name: Upgrade packages (RHEL - yum/dnf)
+  ansible.builtin.yum:
+    name: "*"
+    state: latest
+  when: pkg_mgr in ['yum','dnf']
+  register: yum_upgrade
+
+- name: Reboot if required (Debian)
+  ansible.builtin.reboot:
+    msg: "Reboot initiated by Ansible for security updates"
+    connect_timeout: 5
+    reboot_timeout: 600
+  when: >
+    (patch_reboot_if_required|default(true))
+    and (ansible_facts['pkg_mgr'] is defined and False) is not defined   # placeholder; we use condition below
+
+# Better check generic "needs-reboot" indicators
+- name: Check for /var/run/reboot-required (Debian)
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+  when: ansible_os_family == "Debian"
+
+- name: Reboot if file indicates required (Debian)
+  ansible.builtin.reboot:
+    msg: "Reboot required after package updates"
+    reboot_timeout: 600
+  when: reboot_required_file.stat.exists | bool

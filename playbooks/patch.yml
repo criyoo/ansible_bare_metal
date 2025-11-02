@@ -1,0 +1,10 @@
+---
+- name: Patch all servers
+  hosts: all
+  serial: 20
+  max_fail_percentage: 10
+  gather_facts: true
+  tags: patch
+
+  roles:
+    - role: patch

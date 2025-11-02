@@ -1,0 +1,7 @@
+---
+nginx_worker_processes: auto
+nginx_worker_connections: 1024
+nginx_server_name: "{{ inventory_hostname }}"
+
+app_user: www-data
+app_root: /var/www/html

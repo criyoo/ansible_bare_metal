@@ -1,0 +1,25 @@
+user  {{ app_user | default('www-data') }};
+worker_processes {{ nginx_worker_processes }};
+pid /run/nginx.pid;
+
+events {
+    worker_connections {{ nginx_worker_connections }};
+}
+
+http {
+    sendfile on;
+    tcp_nopush on;
+    server_tokens off;
+
+    server {
+        listen {{ nginx_listen_port }};
+        server_name {{ nginx_server_name }};
+
+        root {{ nginx_root }};
+        index index.html;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+}
